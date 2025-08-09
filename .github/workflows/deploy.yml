@@ -1,43 +1,5 @@
-name: Deploy Nginx Helm
-
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Configure kubeconfig (write to /home/runner/.kube/config)
-        run: |
-          mkdir -p /home/runner/.kube
-          set -e
-          # If the secret already contains YAML (apiVersion:), write directly.
-          if printf '%s' "${{ secrets.KUBECONFIG }}" | grep -q 'apiVersion:'; then
-            printf '%s' "${{ secrets.KUBECONFIG }}" > /home/runner/.kube/config
-          else
-            # otherwise decode base64 into the kubeconfig file
-            printf '%s' "${{ secrets.KUBECONFIG }}" | base64 -d > /home/runner/.kube/config
-          fi
-          chmod 600 /home/runner/.kube/config
-
-          # quick validation: ensure the file looks like a kubeconfig YAML
-          if grep -q '^apiVersion:' /home/runner/.kube/config; then
-            echo "kubeconfig looks valid at /home/runner/.kube/config"
-          else
-            echo "ERROR: /home/runner/.kube/config is NOT valid kubeconfig" >&2
-            exit 1
-          fi
-
-      - name: Install Helm
-        run: |
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-      - name: Deploy using Helm
-        run: |
-          helm upgrade --install nginx-helm ./helm-chart
+- name: Setup kubeconfig
+  run: |
+    mkdir -p $HOME/.kube
+    echo "${{ secrets.KUBECONFIG_B64 }}" | base64 --decode > $HOME/.kube/config
 
